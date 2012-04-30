@@ -50,10 +50,8 @@ class Linkr
     fix_relative_url if !@uri.normalized_site && @link_cache
 
     begin
-      #http = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(@uri.host, @uri.port)
-      http = Net::HTTP.new(@uri.hostname, @uri.port)
+      http = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(@uri.hostname, @uri.port)
       http.read_timeout = http.open_timeout = @timeout
-      request = Net::HTTP::Head.new(@uri.omit(:scheme,:authority).to_s)
       self.response = http.request_head(@uri.request_uri)
     rescue
       raise URI::InvalidURIError
