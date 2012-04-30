@@ -4,14 +4,13 @@ require 'addressable/uri'
 
 class Linkr
   class TooManyRedirects < StandardError; end
-  class InValidUrl < StandardError; end
   
   attr_accessor :original_url, :redirect_limit, :timeout
   attr_writer :url, :response
   
   def initialize(original_url, opts={})
     opts = {
-     :redirect_limit   => 5,
+     :redirect_limit => 5,
      :timeout => 5 
     }.merge(opts)
 
@@ -50,19 +49,21 @@ class Linkr
 
     fix_relative_url if !@uri.normalized_site && @link_cache
 
-    raise InValidUrl unless valid?
-
-    http = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(@uri.host, @uri.port)
-    http.read_timeout = http.open_timeout = @timeout
-    request = Net::HTTP::Get.new(@uri.omit(:scheme,:authority).to_s)
-    self.response = http.request(request)
+    begin
+      http = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(@uri.host, @uri.port)
+      http.read_timeout = http.open_timeout = @timeout
+      request = Net::HTTP::Head.new(@uri.omit(:scheme,:authority).to_s)
+      self.response = http.request_head(@uri.request_uri)
+    rescue
+      raise URI::InvalidURIError
+    end
 
     redirect if response.kind_of?(Net::HTTPRedirection)      
   end
 
   def redirect
     @link_cache = @uri.normalized_site
-    self.url = redirect_url 
+    self.url = response['location']
     @redirect_limit -= 1
     resolve
   end
@@ -71,18 +72,5 @@ class Linkr
     @url = File.join(@link_cache, @uri.omit(:scheme,:authority).to_s)
     @uri = Addressable::URI.parse(@url).normalize
     @link_cache = nil 
-  end
-
-  def redirect_url
-    if response['location'].nil?
-      response.body.match(/<a href=[\"|\']([^>]+)[\"|\']>/i)[1]
-    else
-      response['location']
-    end
-  end
-
-  def valid?
-    regex = /(^$)|(^(http|https):\/\/[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(([0-9]{1,5})?\/.*)?$)/ix
-    true if self.url && self.url =~ regex
   end
 end
