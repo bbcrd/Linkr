@@ -4,17 +4,17 @@ require 'addressable/uri'
 
 class Linkr
   class TooManyRedirects < StandardError; end
-  
+
   attr_accessor :original_url, :redirect_limit, :timeout
   attr_writer :url, :response
-  
+
   def initialize(original_url, opts={})
     opts = {
      :redirect_limit => 5,
-     :timeout => 5 
+     :timeout => 5
     }.merge(opts)
 
-    @original_url = original_url 
+    @original_url = original_url
     @redirect_limit = opts[:redirect_limit]
     @timeout = opts[:timeout]
     @proxy = ENV['http_proxy'] ? Addressable::URI.parse(ENV['http_proxy']) : OpenStruct.new
@@ -50,7 +50,8 @@ class Linkr
     fix_relative_url if !@uri.normalized_site && @link_cache
 
     begin
-      http = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(@uri.host, @uri.port)
+      #http = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(@uri.host, @uri.port)
+      http = Net::HTTP.new(@uri.hostname, @uri.port)
       http.read_timeout = http.open_timeout = @timeout
       request = Net::HTTP::Head.new(@uri.omit(:scheme,:authority).to_s)
       self.response = http.request_head(@uri.request_uri)
@@ -58,7 +59,7 @@ class Linkr
       raise URI::InvalidURIError
     end
 
-    redirect if response.kind_of?(Net::HTTPRedirection)      
+    redirect if response.kind_of?(Net::HTTPRedirection)
   end
 
   def redirect
@@ -71,6 +72,6 @@ class Linkr
   def fix_relative_url
     @url = File.join(@link_cache, @uri.omit(:scheme,:authority).to_s)
     @uri = Addressable::URI.parse(@url).normalize
-    @link_cache = nil 
+    @link_cache = nil
   end
 end
