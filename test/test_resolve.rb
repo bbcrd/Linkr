@@ -13,12 +13,17 @@ class TestLinkr < Test::Unit::TestCase
     assert_equal l.original_url, "http://bbc.in/pdTHqe"
     assert_equal l.redirect_limit, 10
     assert_equal l.timeout, 10
-    assert_equal l.response.class, Net::HTTPOK 
+    assert_equal l.response.class, Net::HTTPOK
   end
 
   def test_normal_link
     FakeWeb.register_uri(:head, "http://www.bbc.co.uk",  :status => ["200", "OK"])
     assert_equal  Linkr.resolve("http://www.bbc.co.uk"), "http://www.bbc.co.uk"
+  end
+
+  def test_same_header_location #special case github
+    FakeWeb.register_uri(:head, "https://github.com/",  :location => "https://github.com/", :status => ["301", "Moved permanently"])
+    assert_equal  Linkr.resolve("https://github.com/"), "https://github.com/"
   end
 
   def test_internal_error

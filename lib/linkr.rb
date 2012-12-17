@@ -64,7 +64,7 @@ class Linkr
     @link_cache = @uri.normalized_site
     self.url = response['location']
     @redirect_limit -= 1
-    resolve
+    resolve if original_url != self.url
   end
 
   def fix_relative_url
