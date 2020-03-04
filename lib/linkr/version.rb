@@ -1,3 +1,3 @@
-module Linkr
-  VERSION = "0.1.1"
+class Linkr
+  VERSION = "0.1.2"
 end
